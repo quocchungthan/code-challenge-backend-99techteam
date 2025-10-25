@@ -5,9 +5,9 @@
  * tsc math.utils.ts --target es2020 --module commonjs --outDir . && node math.utils.js && rm math.utils.js
  */
 
-// Complexity of the approach: O(1)
+// Complexity of the approach: O(n) - recursive call.
 function sum_to_n_a(n: number): number {
-	return n * (n + 1) / 2;
+	return n === 0 ? 0 : sum_to_n_a(n - 1) + n;
 }
 
 // Complexity of the approach: O(n)
