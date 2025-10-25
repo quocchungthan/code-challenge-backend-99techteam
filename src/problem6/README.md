@@ -11,9 +11,9 @@ It enables users’ scores to increase after completing authorized actions, and 
 4. Upon completion the action will dispatch an API call to the application server to update the score.
 5. We want to prevent malicious users from increasing scores without authorisation.
 
-| Let's say the action is completing a lesson on a course. An amount of points is awarded to the user for completing the lesson (just like Duolingo). And the leaderboard shows the top 10 users with the most points. Once user completes the Lesson service will reward him with a token that he can use to redeem points (where the Scoreboard Update Module will be come in to play). We use PostgreSQL as the database for the project at this moment, and the solution architect wants to use simple socket to broadcast the updates to all the connected clients.
+> Let's say the action is completing a lesson on a course. An amount of points is awarded to the user for completing the lesson (just like Duolingo). And the leaderboard shows the top 10 users with the most points. Once user completes the Lesson service will reward him with a token that he can use to redeem points (where the Scoreboard Update Module will be come in to play). We use PostgreSQL as the database for the project at this moment, and the solution architect wants to use simple socket to broadcast the updates to all the connected clients.
 
-| Since we already have the leaderboard, and it's ordered and takes only 10 users so I assume the database schema won't need to change. Even the rank column is not needed, we can calculate it on the fly.
+> Since we already have the leaderboard, and it's ordered and takes only 10 users so I assume the database schema won't need to change. Even the rank column is not needed, we can calculate it on the fly.
 ---
 
 ## Table of Contents
