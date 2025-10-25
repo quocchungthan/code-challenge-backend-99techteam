@@ -11,181 +11,65 @@ It enables users’ scores to increase after completing authorized actions, and 
 4. Upon completion the action will dispatch an API call to the application server to update the score.
 5. We want to prevent malicious users from increasing scores without authorisation.
 
+| Let's say the action is completing a lesson on a course. An amount of points is awarded to the user for completing the lesson (just like Duolingo). And the leaderboard shows the top 10 users with the most points. Once user completes the Lesson service will reward him with a token that he can use to redeem points (where the Scoreboard Update Module will be come in to play). We use PostgreSQL as the database for the project at this moment, and the solution architect wants to use simple socket to broadcast the updates to all the connected clients.
+
+| Since we already have the leaderboard, and it's ordered and takes only 10 users so I assume the database schema won't need to change. Even the rank column is not needed, we can calculate it on the fly.
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [API Design](#api-design)
-3. [Real-Time Update Mechanism](#real-time-update-mechanism)
-4. [Data Model](#data-model)
-5. [Security Considerations](#security-considerations)
-6. [Performance & Scalability](#performance--scalability)
-7. [Execution Flow Diagram](#execution-flow-diagram)
-8. [Future Improvements](#future-improvements)
+1. [User stories](#user-stories)
+2. [Execution Flow Diagram](#execution-flow-diagram)
 
 ---
 
-## Architecture Overview
+## User stories
 
-The module is composed of five main components:
+### Epic: Scoreboard Update Module
+#### Description:
+As a user of the learning platform, I want my score on the global leaderboard to automatically update in real-time when I complete a lesson, so that I can see my progress and compare it with others in an engaging and transparent way.
 
-| Component | Description |
-|------------|--------------|
-| **API Layer** | Handles incoming HTTP requests to update scores. |
-| **Auth Layer** | Validates the user’s identity and ensures the request is authorized. |
-| **Business Logic Layer** | Applies the score increment logic and triggers leaderboard updates. |
-| **Data Layer** | Persists user scores and retrieves the top users for display. |
-| **Real-Time Layer** | Pushes updated leaderboard data to connected clients (via WebSocket or SSE). |
+#### Business Value:
+This module promotes user engagement, competitiveness, and retention by rewarding progress instantly while ensuring secure and authorized score updates.
 
-The system must ensure:
-- Atomic score updates
-- Secure verification of user actions
-- Efficient real-time broadcasting to all connected clients
+### List of User Stories
 
----
-
-## API Design
-
-### `POST /api/v1/score/update`
-
-**Purpose:**  
-Increase a user’s score after completing an authorized action.
-
-#### Request
-```http
-POST /api/v1/score/update
-Authorization: Bearer <JWT_TOKEN>
-Content-Type: application/json
-
-{
-  "actionId": "abcd1234"
-}
-```
-
-#### Response
-```json
-{
-  "userId": "u123",
-  "newScore": 5600,
-  "rank": 3
-}
-```
-#### Behavior
-1. Validate the user via JWT.
-2. Verify that the actionId represents a legitimate and non-replayed action.
-3. Atomically increment the user’s score in the data store.
-4. Publish a leaderboard update event to the real-time channel.
-5. Return the user’s updated score and computed rank (not stored, derived from ordering).
-
-#### Errors
-|Code	|Meaning	|Example|
-|---|---|---|
-|400	|Invalid request	|Missing or malformed actionId|
-|401	|Unauthorized	|Invalid or expired JWT|
-|403	|Forbidden	|Unauthorized score update attempt|
-|500	|Server error	|Database or cache failure|
-
-#### Real-Time Update Mechanism
-Clients receive live updates of the top 10 leaderboard through one of the following mechanisms:
-
-##### Option 1: WebSocket (Preferred)
-Persistent bidirectional connection.
-
-Server emits a SCOREBOARD_UPDATED event to all subscribed clients.
-
-```json
-{
-  "event": "SCOREBOARD_UPDATED",
-  "data": {
-    "leaderboard": [
-      { "userId": "u1", "score": 5800 },
-      { "userId": "u2", "score": 5750 }
-    ]
-  }
-}
-```
-
-##### Option 2: Server-Sent Events (SSE)
-Unidirectional connection (server → client).
-
-Simpler implementation, suitable for read-only dashboards.
-
-### Data Model
-Table: `user_scores`
-|Field	|Type	|Description|
-|---|---|---|
-|`user_id`	|UUID (PK)	|Unique identifier for each user|
-|`score`	|INT	|User’s current total score|
-|`updated_at`	|TIMESTAMP	|Last score update timestamp|
-
-#### Indexes
-
-- `score DESC` (for fast leaderboard queries)
-- `user_id` (primary key)
-
-#### Notes
-
-- The rank is not stored — it is computed dynamically during query or broadcast.
-- Caching (e.g., Redis Sorted Set) is recommended for top N queries:
-
-```bash
-ZREVRANGE leaderboard 0 9 WITHSCORES
-```
-## Security Considerations
-### Authentication
-
-- All API calls must include a valid JWT in the Authorization header.
-- Tokens should contain `user_id` and `scope` claims.
-
-### Authorization
-
-- Users can only modify their own score.
-- The server must validate the authenticity of the actionId.
-
-### Action Validation
-
-- Each action must have a unique signature or token.
-- Prevent replay attacks by marking used actions as “consumed.”
-
-### Rate Limiting
-
-- Apply per-user rate limits on score updates.
-- Block excessive or automated update attempts.
-
-### Audit Logging
-
--Log all score changes for investigation and debugging.
-
-## Performance & Scalability
-|Concern	|Recommendation|
-|---|---|
-|Frequent score updates	|Use Redis as a cache layer for fast score increments. Sync periodically to the DB.|
-|Leaderboard queries	|Cache top 10 users in Redis; recompute only on change.|
-|Horizontal scaling	|Use a Pub/Sub (Redis, NATS, or Kafka) channel for broadcasting updates to multiple WebSocket instances.|
-|Atomicity	|Use DB transactions or Redis atomic operations (ZINCRBY).|
+| ID   | User Story | INVEST Principle | Priority | Story Points | Acceptance Criteria (AC) | Test Cases |
+|------|------------|----------------|----------|--------------|-------------------------|------------|
+| US1  | As a user, I want my score to increase securely when I redeem a reward token after completing a lesson, so that I get recognized for my achievements. | Independent, Valuable, Testable | High | 5 | 1. User submits reward token via `/api/v1/score/redeem`. <br>2. API validates JWT. <br>3. Reward token is validated (signature, expiry, usage). <br>4. User’s score in DB is incremented by the token points. <br>5. API responds with 200 OK and new total score. | 1. Submit valid reward token → expect 200 OK and correct new score. <br>2. Submit expired token → expect 400 error. <br>3. Submit token twice → expect 400 error (duplicate). |
+| US2  | As a user, I want my updated score to appear on the leaderboard in real-time, so that I can see my ranking instantly. | Independent, Valuable, Small, Testable | High | 5 | 1. When user score changes, `SCOREBOARD_UPDATED` event is published. <br>2. All connected clients receive the updated leaderboard with new scores and ranks. | 1. Connect multiple clients → redeem token → all clients receive updated leaderboard. <br>2. Verify updated rank matches new score order. |
+| US3  | As a system, I want to prevent unauthorized score updates, so that users cannot cheat or manipulate the leaderboard. | Independent, Valuable, Testable | High | 3 | 1. Only valid JWT and reward tokens are accepted. <br>2. Invalid or tampered tokens are rejected with 401/400. <br>3. Score is not incremented for invalid requests. | 1. Submit request without JWT → expect 401 Unauthorized. <br>2. Submit request with tampered token → expect 400 Bad Request. <br>3. Score remains unchanged after invalid submission. |
+| US4  | As a system, I want to validate reward tokens for expiry and single-use, so that points cannot be redeemed multiple times. | Independent, Valuable, Small, Testable | Medium | 3 | 1. Reward token includes timestamp/expiry and usage status. <br>2. Token is rejected if expired or already redeemed. <br>3. Score is incremented only once per token. | 1. Submit expired token → expect 400 error. <br>2. Submit already redeemed token → expect 400 error. <br>3. Submit valid token → score incremented once. |
+| US5  | As a system, I want to increment scores and calculate leaderboard ranks efficiently, so that the top 10 leaderboard is always accurate. | Independent, Valuable, Estimable, Testable | Medium | 5 | 1. DB increments user score atomically. <br>2. Leaderboard ranks recalculated after each update. <br>3. Top 10 users displayed correctly on leaderboard API. | 1. Increment multiple users → verify top 10 leaderboard order. <br>2. Check new rank after score increment matches expected order. |
 
 ## Execution Flow Diagram
 ```mermaid
 sequenceDiagram
-    participant Client
+    participant User
+    participant Lesson Service
     participant API Server
     participant Auth Service
     participant DB/Cache
     participant WebSocket Gateway
 
-    Client->>API Server: POST /api/v1/score/update (JWT, actionId)
-    API Server->>Auth Service: Validate JWT & action
+    %% Step 1: Lesson completion
+    User->>Lesson Service: Complete Lesson
+    Lesson Service-->>User: Reward Token (signed, includes lessonId, userId, points)
+
+    %% Step 2: Score update request
+    User->>API Server: POST /api/v1/score/redeem (JWT, rewardToken)
+    API Server->>Auth Service: Validate JWT (user authentication)
     Auth Service-->>API Server: Authorized
-    API Server->>DB/Cache: Increment user score
-    DB/Cache-->>API Server: Updated score
-    API Server->>WebSocket Gateway: Publish SCOREBOARD_UPDATED event
-    WebSocket Gateway-->>Clients: Broadcast updated leaderboard
-    API Server-->>Client: 200 OK (new score & rank)
+
+    %% Step 3: Token validation & score update
+    API Server->>Lesson Service: Validate rewardToken (signature, expiry, usage)
+    Lesson Service-->>API Server: Token valid (points = X)
+    API Server->>DB/Cache: Increment user score by X points
+    DB/Cache-->>API Server: Updated total score + new rank
+
+    %% Step 4: Broadcast update
+    API Server->>WebSocket Gateway: Publish SCOREBOARD_UPDATED event (userId, newScore, newRank)
+    WebSocket Gateway-->>All Clients: Broadcast updated leaderboard
+    API Server-->>User: 200 OK (newScore, newRank)
+
 ```
-## Future Improvements
-- Dynamic Leaderboard Sizes – Support pagination or top-N queries beyond 10.
-- Score Decay System – Allow scores to drop over time for competitive freshness.
-- Async Queue for Heavy Load – Use a message queue to handle score updates at scale.
-- Testing Strategy – Include a full suite of unit and integration tests.
-- Observability – Integrate Prometheus/Grafana dashboards to monitor update rates and latency.
