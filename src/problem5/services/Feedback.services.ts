@@ -12,15 +12,15 @@ export class FeedbackService {
 
     }
 
-    getDetailById() {
-
+    async getDetailById(id: string): Promise<Feedback | null> {
+        return this.repo.findOne({where: { id} });
     }
 
     updateById(id: string, data: Partial<Feedback>) {
 
     }
 
-    deleteById() {
+    async deleteById(id: string): Promise<void> {
 
     }
 }
