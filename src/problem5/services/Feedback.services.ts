@@ -1,4 +1,4 @@
-import { Feedback } from "@entities/Feedback";
+import { Feedback } from "../entities/Feedback";
 import { AppDataSource } from "../configs/AppDataSource";
 
 export class FeedbackService {

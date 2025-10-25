@@ -13,9 +13,14 @@ export interface BasicAuthConfig {
     Password: string;
 }
 
+export interface ServerConfig {
+    port: number;
+}
+
 export interface Env {
     Postgres: PostgresDbConfig;
-    BasicUser: BasicAuthConfig; 
+    BasicUser: BasicAuthConfig;
+    Server: ServerConfig;
 }
 
 export const localEnv: Env = {
@@ -29,5 +34,8 @@ export const localEnv: Env = {
     BasicUser: {
         Username: process.env.BASIC_USERNAME ?? '',
         Password: process.env.BASIC_PASSWORD ?? '',
+    },
+    Server: {
+        port: +(process.env.SERVER_PORT ?? '3000'),
     }
 }

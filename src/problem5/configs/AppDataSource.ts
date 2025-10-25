@@ -22,6 +22,8 @@ export const getDatabaseConfig = (): DatabaseConfig => {
   };
 };
 
+console.log(localEnv);
+
 export const ensureDatabase = async (): Promise<void> => {
   const config = getDatabaseConfig();
   const isDebugMode = config.logLevel === 'debug';
@@ -32,7 +34,13 @@ export const ensureDatabase = async (): Promise<void> => {
     console.info("Database connection configured");
   }
 
-  const client = new Client(config);
+  const client = new Client({
+    user: config.username,
+    host: config.host,
+    database: config.database,
+    password: config.password,
+    port: config.port,
+  });
   await client.connect();
   
   try {
