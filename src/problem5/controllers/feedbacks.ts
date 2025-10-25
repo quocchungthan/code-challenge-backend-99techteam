@@ -11,17 +11,17 @@ export class FeedbackController {
 
   static async create(req: Request, res: Response) {
     const feedback = req.body;
-    const createdFeedback = await this.service.create(feedback);
+    const createdFeedback = await FeedbackController.service.create(feedback);
     res.json(createdFeedback);
   }
 
   static async filter(req: Request, res: Response) {
-    const feedbacks = await this.service.filter();
+    const feedbacks = await FeedbackController.service.filter();
     res.json(feedbacks);
   }
 
   static async getDetailById(req: Request, res: Response) {
-    const detail = await this.service.getDetailById(req.params.id);
+    const detail = await FeedbackController.service.getDetailById(req.params.id);
     if (detail) {
       res.json(detail);
     } else {
@@ -30,11 +30,11 @@ export class FeedbackController {
   }
 
   static async updateById(req: Request, res: Response) {
-    return this.service.updateById(req.params.id, req.body);
+    return FeedbackController.service.updateById(req.params.id, req.body);
   }
 
   static async deleteById(req: Request, res: Response) {
-    return this.service.deleteById(req.params.id);
+    return FeedbackController.service.deleteById(req.params.id);
   }
 }
 
