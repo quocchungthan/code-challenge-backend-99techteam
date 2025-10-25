@@ -1,9 +1,15 @@
 # Scoreboard Update Module Specification
 
-## Overview
+## Original Software requirements
 
 The **Scoreboard Update Module** provides secure and real-time score updates for users on our platform.  
 It enables users’ scores to increase after completing authorized actions, and broadcasts live updates to all connected clients viewing the leaderboard.
+
+1. We have a website with a score board, which shows the top 10 user’s scores.
+2. We want live update of the score board.
+3. User can do an action (which we do not need to care what the action is), completing this action will increase the user’s score.
+4. Upon completion the action will dispatch an API call to the application server to update the score.
+5. We want to prevent malicious users from increasing scores without authorisation.
 
 ---
 
