@@ -5,14 +5,19 @@
  * tsc math.utils.ts --target es2020 --module commonjs --outDir . && node math.utils.js && rm math.utils.js
  */
 
+// Complexity of the approaches: O(1)
 function sum_to_n_a(n: number): number {
 	return n * (n + 1) / 2;
 }
 
+// Complexity of the approaches: O(n)
+// Take extra memory to store the array
 function sum_to_n_b(n: number): number {
 	return new Array<number>(n + 1).fill(0).reduce((acc, cur, i) => acc + i, 0);
 }
 
+// Complexity of the approaches: O(1)
+// Bitwise operations, no extra memory
 function sum_to_n_c(n: number): number {
     return n * (n + 1) >> 1;
 }
