@@ -3,7 +3,7 @@
 ## Original Software requirements
 
 The **Scoreboard Update Module** provides secure and real-time score updates for users on our platform.  
-It enables users’ scores to increase after completing authorized actions, and broadcasts live updates to all connected clients viewing the leaderboard.
+It enables user's scores to increase after completing authorized actions, and broadcasts live updates to all connected clients viewing the leaderboard.
 
 1. We have a website with a score board, which shows the top 10 user’s scores.
 2. We want live update of the score board.
@@ -73,3 +73,49 @@ sequenceDiagram
     API Server-->>User: 200 OK (newScore, newRank)
 
 ```
+## Comments on the User Stories regarding technical aspects
+
+### Questions a Developer Might Ask During Refinement
+
+| Question | Answer / Clarification |
+|----------|-----------------------|
+| **Q1:** What format should the reward token take? | JWT or signed JSON object containing `userId`, `lessonId`, `points`, `expiry`, and a unique `tokenId`. Must be verifiable by Lesson Service. |
+| **Q2:** How do we ensure a token is single-use? | Maintain a `redeemed_tokens` table in DB with `tokenId`, `userId`, `redeemedAt`. When redeeming, atomically insert into this table; if already exists, reject. |
+| **Q3:** Should the leaderboard include users tied in points? | Yes. Users with the same points can share rank, or tie-breaking can be done by earliest score achievement timestamp. |
+| **Q4:** Can the leaderboard scale beyond top 10 in the future? | The current design focuses on top 10. For scaling, consider caching leaderboard in Redis and updating top N only. Current DB schema supports full user scores if needed. |
+| **Q5:** Should we use PostgreSQL transactions for score updates? | Yes, atomic increment and token redemption check should be wrapped in a transaction to avoid race conditions. |
+| **Q6:** What if a user redeems a token but the WebSocket broadcast fails? | The score update should still persist. Broadcast can retry or clients can fetch latest leaderboard periodically as fallback. |
+| **Q7:** Are WebSocket connections authenticated? | Yes, clients must provide valid JWT to subscribe to leaderboard updates. Unauthorized clients should be rejected. |
+| **Q8:** Should we validate token points server-side or trust the token? | Always validate server-side: verify signature, expiry, and that `points` match expected value for that lesson. |
+| **Q9:** Should we let the Lesson Service call the Scoreboard Update Module to update the score? | Yes, in the future we may want to let the Lesson Service call the Scoreboard Update Module to update the score, but for now we split the responsibilities, steps for easier testing, once each step is implemented we can automate the integration. |
+---
+
+### Implementation Notes
+
+#### 1. Separation of Concerns
+- JWT authentication logic in one module (`auth`).
+- Reward token logic in one module (`reward_token`): validation, expiry, single-use check.
+- Score updating and leaderboard logic in one module (`scoreboard`).
+
+#### 2. SRP (Single Responsibility Principle)
+- Each function/method should do one thing:
+  - `validate_jwt()`
+  - `validate_reward_token()`
+  - `increment_user_score()`
+  - `broadcast_leaderboard_update()`
+
+#### 3. Atomicity & Concurrency
+- DB operations must be atomic: increment score **and** mark token as redeemed within a single transaction.
+- Use row-level locking (`SELECT ... FOR UPDATE`) or UPSERTs for token redemption to avoid race conditions.
+
+#### 4. Leaderboard Calculation
+- Calculate ranks on-the-fly when retrieving top 10 from DB.
+- Keep leaderboard query simple:  
+  ```sql
+  SELECT user_id, score
+  FROM users
+  ORDER BY score DESC, updated_at ASC
+  LIMIT 10;
+
+---
+#atomic #srp #coverage #prevent-malicious #prevent-replay-attack #live-updates #testing
