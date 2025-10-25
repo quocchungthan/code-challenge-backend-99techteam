@@ -117,5 +117,14 @@ sequenceDiagram
   ORDER BY score DESC, updated_at ASC
   LIMIT 10;
 
+#### 5. Constants
+- Hardcode must-have values in constants.ts (API routes, JWT settings, leaderboard size, event types, retry counts).
+
+#### 6. Configurable Variable
+- Use config.yaml, .env or environment variables for leaderboard size, token expiry, broadcast toggles, etc.
+
+#### 7. Feature Flags
+- Allow toggling features like scoreboard updates, WebSocket broadcasts, or token validation per client.
+
 ---
 #atomic #srp #coverage #prevent-malicious #prevent-replay-attack #live-updates #testing
