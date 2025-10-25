@@ -13,6 +13,7 @@ Then run the following command to start the project.
 ```bash
 npm run dev
 ```
+The server will start on port SERVER_PORT (3000 by default). You can access the Swagger UI at `http://localhost:SERVER_PORT/api-docs`
 
 ## For the first time setup
 

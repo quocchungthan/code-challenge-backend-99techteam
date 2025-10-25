@@ -3,6 +3,7 @@ import express from 'express';
 import { AppDataSource, ensureDatabase, initializeDatabase } from './configs/AppDataSource';
 import { setupSwagger } from './configs/Swagger';
 import { localEnv } from './configs/EnvLoader';
+import bodyParser from 'body-parser';
 
 // Load environment variables
 dotenv.config({ override: true });
@@ -10,6 +11,8 @@ dotenv.config({ override: true });
 // Create Express app
 const app = express();
 
+app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 setupSwagger(app);
 
 // Main startup sequence
