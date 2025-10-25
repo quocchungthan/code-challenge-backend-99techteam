@@ -74,7 +74,6 @@ export const initializeDatabase = async (dataSource: DataSource): Promise<void> 
   }
 };
 
-
 export const AppDataSource = new DataSource({
     type: 'postgres',
     ...getDatabaseConfig(),
@@ -83,5 +82,5 @@ export const AppDataSource = new DataSource({
     entities: [
         Feedback
     ],
-    migrations: [__dirname + '/migrations/*.ts'],
+    migrations: [__dirname + '/../migrations/*.ts'],
 });
